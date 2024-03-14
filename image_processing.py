@@ -1,9 +1,27 @@
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps,  ExifTags
 from io import BytesIO
 
 def add_white_borders_to_fit_4_5_aspect_ratio(input_image_stream, output_buffer):
     # Load the image from the file stream
     image = Image.open(input_image_stream)
+
+    # Correct orientation based on EXIF data
+    try:
+        for orientation in ExifTags.TAGS.keys():
+            if ExifTags.TAGS[orientation] == 'Orientation':
+                break
+        exif = dict(image._getexif().items())
+
+        if exif[orientation] == 3:
+            image = image.rotate(180, expand=True)
+        elif exif[orientation] == 6:
+            image = image.rotate(270, expand=True)
+        elif exif[orientation] == 8:
+            image = image.rotate(90, expand=True)
+    except (AttributeError, KeyError, IndexError):
+        # Cases: image doesn't have getexif
+        pass
+
 
     # Target aspect ratio
     target_ratio = (4, 5)
