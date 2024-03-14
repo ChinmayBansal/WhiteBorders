@@ -1,23 +1,19 @@
-from flask import Flask, request, flash, redirect, url_for, render_template, send_from_directory
+import os
+from flask import Flask, request, flash, redirect, render_template, send_file
 from werkzeug.utils import secure_filename
-
+from io import BytesIO
 from image_processing import add_white_borders_to_fit_4_5_aspect_ratio
 from dotenv import load_dotenv
 
 load_dotenv()
-import os
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads/'
-app.config['PROCESSED_FOLDER'] = 'processed/'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 app.secret_key = os.environ.get('SECRET_KEY')
-
 
 def allowed_file(filename):
     return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -32,17 +28,17 @@ def upload_file():
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-
-            # Process the image
             processed_filename = 'processed_' + filename
-            processed_filepath = os.path.join(app.config['PROCESSED_FOLDER'], processed_filename)
-            add_white_borders_to_fit_4_5_aspect_ratio(filepath, processed_filepath)
 
-            return send_from_directory(app.config['PROCESSED_FOLDER'], processed_filename, as_attachment=True)
+            # Create an in-memory byte stream to hold the processed image
+            byte_io = BytesIO()
+            add_white_borders_to_fit_4_5_aspect_ratio(file, byte_io)
+            byte_io.seek(0)
+
+            flash('File has been processed and is ready to download.')
+            return send_file(byte_io, as_attachment=True, download_name=processed_filename)
+
     return render_template('upload.html')
-
 
 if __name__ == '__main__':
     app.run(debug=True)

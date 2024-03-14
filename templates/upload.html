@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload new File</title>
+</head>
+<body>
+    <h1>Upload new File</h1>
+    <form id="uploadForm" onsubmit="uploadFile(event)" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <input type="submit" value="Upload">
+    </form>
+
+    <script>
+    function uploadFile(event) {
+        event.preventDefault(); // Prevent the default form submit
+        var form = document.getElementById('uploadForm');
+        var formData = new FormData(form);
+        var fileInput = document.querySelector('input[type="file"]');
+        var file = fileInput.files[0];
+
+        // Allowed file types
+        var allowedExtensions = /(\.jpg|\.jpeg|\.png|\.gif|\.bmp|\.raw)$/i;
+
+        if (!allowedExtensions.exec(file.name)) {
+            alert('Invalid file type. Please upload an image file.');
+            return;
+        }
+
+        var filename = file.name; // Get the uploaded file name
+        var processedFilename = 'processed_' + filename; // Prepend 'processed_'
+
+
+
+        fetch('/', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => {
+            if (response.ok) {
+                 // Show processing alert
+                return response.blob();
+            } else {
+                alert('Upload failed. Please try again.'); // Show error alert
+                throw new Error('Network response was not ok.');
+            }
+        })
+        .then(blob => {
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = processedFilename; // Use the processed file name
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            alert('Your file has been processed and is ready to download.'); // Show success alert
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.'); // Show error alert
+            console.error('There has been a problem with your fetch operation:', error);
+        });
+    }
+</script>
+</body>
+</html>
